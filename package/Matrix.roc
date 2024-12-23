@@ -28,7 +28,7 @@ Matrix a := {
     height : U64,
     buffer : List a,
 }
-    implements [Inspect]
+    implements [Inspect, Eq]
 
 Index : {
     row : U64,
@@ -155,26 +155,33 @@ reverseEachRow = \matrix ->
         Err InvalidDimensions -> crash "reverseEachRow is valid matrix"
 
 transpose : Matrix a -> Matrix a
-transpose = \@Matrix { buffer, width: w, height: h } ->
-    newBuffer =
-        List.range { start: At 0, end: Before h }
-        |> List.walk buffer \acc, row ->
-            List.range { start: At 0, end: Before w }
-            |> List.walk acc \acc1, column ->
-                index =
-                    when
-                        listIndex
-                            (@Matrix { buffer: [], width: w, height: h })
-                            { row, column }
-                    is
-                        Ok i -> i
-                        Err _ -> crash "transpose is valid matrix"
-                value =
-                    when List.get buffer index is
-                        Ok x -> x
-                        Err OutOfBounds -> crash "transpose is valid matrix"
-                List.set acc1 (column * w + row) value
-    @Matrix { buffer: newBuffer, width: h, height: w }
+transpose = \@Matrix matrix ->
+    indices =
+        List.range { start: At 0, end: Before matrix.height }
+        |> List.walk
+            (repeat { row: 0, column: 0 } { width: matrix.height, height: matrix.width })
+            \acc, row ->
+                List.range { start: At 0, end: Before matrix.width }
+                |> List.walk acc \acc1, column ->
+                    acc1
+                    |> set { row: column, column: row } { row, column }
+    indices
+    |> map \index ->
+        when get (@Matrix matrix) index is
+            Ok v -> v
+            Err _ -> crash "transpose is valid matrix"
+
+expect
+    matrix =
+        when Matrix.fromRows [[1, 2, 3], [4, 5, 6]] is
+            Ok m -> m
+            Err _ -> crash "unreachable"
+    got = Matrix.transpose matrix
+    expected =
+        when Matrix.fromRows [[1, 4], [2, 5], [3, 6]] is
+            Ok m -> m
+            Err _ -> crash "unreachable"
+    got == expected
 
 findPositions : Matrix a, a -> List Matrix.Index where a implements Eq
 findPositions = \matrix, value ->
