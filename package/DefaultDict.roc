@@ -46,10 +46,11 @@ update :
     k,
     (v -> v)
     -> DefaultDict k v
-update = \dict, key, func -> { dict &
-        dict: Dict.update dict.dict key \old ->
-            old
-            |> Result.withDefault dict.default
-            |> func
-            |> Ok,
-    }
+update = \{ dict, default }, key, func -> {
+    dict: Dict.update dict key \old ->
+        old
+        |> Result.withDefault default
+        |> func
+        |> Ok,
+    default,
+}
