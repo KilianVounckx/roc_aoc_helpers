@@ -44,8 +44,12 @@ remove = \dict, key -> { dict &
 update :
     DefaultDict k v,
     k,
-    (Result v [Missing] -> Result v [Missing])
+    (v -> v)
     -> DefaultDict k v
 update = \dict, key, func -> { dict &
-        dict: Dict.update dict.dict key func,
+        dict: Dict.update dict.dict key \old ->
+            old
+            |> Result.withDefault dict.default
+            |> func
+            |> Ok,
     }
